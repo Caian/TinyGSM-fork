@@ -22,10 +22,23 @@
 #endif
 #endif
 
+#include <ArduinoCompat/builtin.h>
+
 #if defined(ARDUINO_DASH)
 #include <ArduinoCompat/Client.h>
-#else
+#elif defined(ARDUINO)
 #include <Client.h>
+#else
+#include <ArduinoCompat/Client.h>
+#include <ArduinoCompat/log.h>
+#include <sstream>
+#include <algorithm>
+#if !defined(min)
+#define min std::min
+#endif
+#if !defined(max)
+#define max std::max
+#endif
 #endif
 
 #ifndef TINY_GSM_YIELD_MS
@@ -84,6 +97,18 @@ static void DBG(Args... args) {
   DBG_PLAIN(args...);
 }
 }  // namespace
+#elif defined(ESP_PLATFORM)
+template <typename Arg, typename... Args>
+static void DBG(Arg&& arg, Args&&... args)
+{
+    if (!ESP_LOG_ENABLED(ESP_LOG_DEBUG))
+        return;
+    std::stringstream ss;
+    ss << std::forward<Arg>(arg);
+    ((ss << ',' << std::forward<Args>(args)), ...);
+    auto s = ss.str();
+    ESP_LOGD("TinyGSM", "%s", s.c_str());
+}
 #else
 #define DBG_PLAIN(...)
 #define DBG(...)
